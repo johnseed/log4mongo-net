@@ -12,7 +12,7 @@ namespace Log4Mongo
 {
 	public class MongoDBAppender : AppenderSkeleton
 	{
-		private readonly List<MongoAppenderFileld> _fields = new List<MongoAppenderFileld>();
+		private readonly List<MongoAppenderFileld> _fields = new();
 
 		/// <summary>
 		/// MongoDB database connection in the format:
@@ -132,7 +132,7 @@ namespace Log4Mongo
 			}
 		}
 
-		private bool CollectionExists(IMongoDatabase db, string collectionName)
+		private static bool CollectionExists(IMongoDatabase db, string collectionName)
 		{
 			var filter = new BsonDocument("name", collectionName);
 
@@ -189,8 +189,8 @@ namespace Log4Mongo
 			MongoUrl url = MongoUrl.Create(connStr);
 			//MongoClient client = new MongoClient(url);
 			MongoClientSettings settings = MongoClientSettings.FromUrl(url);
-			settings.SslSettings = url.UseSsl ? GetSslSettings() : null;
-			MongoClient client = new MongoClient(settings);
+			settings.SslSettings = url.UseTls ? GetSslSettings() : null;
+			MongoClient client = new(settings);
 
 			IMongoDatabase db = client.GetDatabase(url.DatabaseName ?? "log4net");
 			return db;
@@ -206,15 +206,17 @@ namespace Log4Mongo
 
 				if (null != certificate)
 				{
-					sslSettings = new SslSettings();
-					sslSettings.ClientCertificates = new List<X509Certificate2>() { certificate };
-				}
+                    sslSettings = new SslSettings
+                    {
+                        ClientCertificates = new List<X509Certificate2>() { certificate }
+                    };
+                }
 			}
 
 			return sslSettings;
 		}
 
-		private X509Certificate2 GetCertificate(string certificateFriendlyName)
+		private static X509Certificate2 GetCertificate(string certificateFriendlyName)
 		{
 			X509Certificate2 certificateToReturn = null;
 			X509Store store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
@@ -246,9 +248,8 @@ namespace Log4Mongo
 			foreach (MongoAppenderFileld field in _fields)
 			{
                 object value = field.Layout.Format(log);
-                BsonValue bsonValue;
                 // if the object is complex and can't be mapped to a simple object, convert to bson document
-                if (!BsonTypeMapper.TryMapToBsonValue(value, out bsonValue))
+                if (!BsonTypeMapper.TryMapToBsonValue(value, out BsonValue bsonValue))
                 {
                     bsonValue = value.ToBsonDocument();
                 }

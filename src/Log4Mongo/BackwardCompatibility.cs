@@ -53,7 +53,7 @@ namespace Log4Mongo
 					properties.Add(entry.Key.ToString(), entry.Value.ToString());
 				}
 
-				toReturn.Add("properties", properties);
+				toReturn.Add(nameof(properties), properties);
 			}
 
 			return toReturn;
